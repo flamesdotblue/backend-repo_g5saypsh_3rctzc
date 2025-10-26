@@ -1,48 +1,32 @@
 """
-Database Schemas
+Database Schemas for Civic-Sense
 
-Define your MongoDB collection schemas here using Pydantic models.
-These schemas are used for data validation in your application.
-
-Each Pydantic model represents a collection in your database.
-Model name is converted to lowercase for the collection name:
-- User -> "user" collection
-- Product -> "product" collection
-- BlogPost -> "blogs" collection
+Each Pydantic model represents a MongoDB collection.
+Collection name = lowercase of class name (User -> "user", Report -> "report").
 """
 
-from pydantic import BaseModel, Field
-from typing import Optional
-
-# Example schemas (replace with your own):
+from pydantic import BaseModel, Field, EmailStr
+from typing import Optional, Literal, List
 
 class User(BaseModel):
-    """
-    Users collection schema
-    Collection name: "user" (lowercase of class name)
-    """
     name: str = Field(..., description="Full name")
-    email: str = Field(..., description="Email address")
-    address: str = Field(..., description="Address")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
+    email: EmailStr = Field(..., description="Email address")
+    role: Literal['user', 'municipal'] = Field('user', description="Role of the account")
+    password_hash: str = Field(..., description="Hashed password")
     is_active: bool = Field(True, description="Whether user is active")
 
-class Product(BaseModel):
-    """
-    Products collection schema
-    Collection name: "product" (lowercase of class name)
-    """
-    title: str = Field(..., description="Product title")
-    description: Optional[str] = Field(None, description="Product description")
-    price: float = Field(..., ge=0, description="Price in dollars")
-    category: str = Field(..., description="Product category")
-    in_stock: bool = Field(True, description="Whether product is in stock")
+class Location(BaseModel):
+    lat: Optional[float] = Field(None)
+    lng: Optional[float] = Field(None)
+    address: Optional[str] = Field('', description="Nearest address or landmark")
 
-# Add your own schemas here:
-# --------------------------------------------------
-
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+class Report(BaseModel):
+    user_email: str = Field(..., description="Reporter email")
+    name: str = Field('Citizen', description="Reporter display name")
+    description: str = Field(..., description="Issue description")
+    category: str = Field('Other', description="Issue category")
+    location: Location = Field(default_factory=Location)
+    imageUrl: Optional[str] = Field('', description="Image URL if any")
+    status: Literal['Submitted','In Review','Validated','Resolved','Rejected'] = Field('Submitted')
+    timestamp: int = Field(..., description="Client timestamp (ms)")
+    pointsAwarded: int = Field(0, description="Civic points awarded by server heuristics/AI")
